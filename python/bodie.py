@@ -17,10 +17,10 @@ def teamChannelList ():
     channels = ugly_channel_list['channels']
     for channel in channels:
         slack_public_channels_set.add(str(unicode(channel['id'])))
-    print slack_public_channels_set
     return slack_public_channels_set
 
-teamChannelList()
+channel_list = list(teamChannelList())
+print channel_list
 
 def teamMemberList():
     """Creates a set of all public channel members on a given Slack team"""
@@ -31,13 +31,32 @@ def teamMemberList():
         members_list = channel['members']
         for member in members_list:
             slack_public_channels_users_set.add(str(unicode(member)))
-    print slack_public_channels_users_set
     return slack_public_channels_users_set
 
-teamMemberList()
+member_list = list(teamMemberList())
+print member_list
+
+def player1Select(member_list):
+    player1 = choice(member_list)
+    return player1
+
+player1 = player1Select(member_list)
+print player1
+
+def player2Select(member_list):
+    player2 = choice(member_list)
+    return player2
+
+player2 = player2Select(member_list)
+print player2
+
+def playerCompare(player1, player2):
+    pass
+
+comparison = playerCompare(player1, player2)
 
 # Send a message to #team-chips-and-crisps channel
-slack.chat.post_message('team-chips-and-crisps', 'Hello there!  Are you ready for a game, %s?' % (choice(slack_public_channels_users_set)), as_user=False, username='Bodie')
+# slack.chat.post_message('team-chips-and-crisps', 'Hello there!  Are you ready for a game, %s?' % (choice(slack_public_channels_users_set)), as_user=False, username='Bodie')
 
 # Get users list
 #response = slack.users.list()
