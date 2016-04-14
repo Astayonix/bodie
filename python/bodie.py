@@ -10,7 +10,7 @@ slack = Slacker(os.environ['SLACK_OAUTH_ACCESS_TOKEN'])
 # pp_channel = json.dumps(channel_list, sort_keys=False, indent=4, separators=(',',':'))
 # print pp_channel
 
-def teamChannelList ():
+def teamChannelSet ():
     """Creates a set of all public channels on a given Slack team"""
     slack_public_channels_set = set()
     ugly_channel_list = slack.channels.list().body
@@ -19,10 +19,10 @@ def teamChannelList ():
         slack_public_channels_set.add(str(unicode(channel['id'])))
     return slack_public_channels_set
 
-channel_list = list(teamChannelList())
+channel_list = list(teamChannelSet())
 print channel_list
 
-def teamMemberList():
+def teamMemberSet():
     """Creates a set of all public channel members on a given Slack team"""
     slack_public_channels_users_set = set()
     ugly_channel_list = slack.channels.list().body
@@ -33,30 +33,90 @@ def teamMemberList():
             slack_public_channels_users_set.add(str(unicode(member)))
     return slack_public_channels_users_set
 
-member_list = list(teamMemberList())
+member_list = list(teamMemberSet())
 print member_list
 
-def player1Select(member_list):
-    player1 = choice(member_list)
-    return player1
+def teamChannelUserDict(member_list):
+    """Creates a dictionary of all users and the public channels they belong to on a given Slack team"""
+    public_channels_and_users_dict = {}
+    member_list = member_list
+    ugly_channel_list = slack.channels.list().body
+    channels = ugly_channel_list['channels']
+    for member in member_list:
+        public_channels_and_users_dict[member] = []
+    for member in member_list:
+        for channel in channels:
+            channel_members = channel['members']
+            channel_id = channel['id']
+            for channel_member in channel_members:
+                if member == channel_member:
+                    public_channels_and_users_dict[member].append(channel_id)
+    return public_channels_and_users_dict
 
-player1 = player1Select(member_list)
-print player1
+channel_user_dict = teamChannelUserDict(member_list)
+print channel_user_dict
 
-def player2Select(member_list):
-    player2 = choice(member_list)
-    return player2
+def teamUserLocationDict(member_list):
+    """Creates a dictionary of all non-deleted, non-bot users and their associated location information.
+    {Slack User_ID: [User's Real First and Last Name, User's Time Zone, User's Time Zone Label]}"""
+    user_location_dict = {}
+    member_list = member_list
+    ugly_user_list = slack.users.list().body
+    users = ugly_user_list['members']
+    for member in member_list:
+        user_location_dict[member] = []
+    for member in member_list:
+        for user in users:
+            if user['deleted'] == False:
+                if user['is_bot'] == False:
+                    user_id = user['id']
+                    user_real_name = user['real_name']
+                    user_tz = user['tz']
+                    user_tz_label = user['tz_label']
+                    if member == user_id:
+                        user_location_dict[member].append(user_real_name)
+                        user_location_dict[member].append(user_tz)
+                        user_location_dict[member].append(user_tz_label)
+    return user_location_dict
 
-player2 = player2Select(member_list)
-print player2
+user_location_info_dict = teamUserLocationDict(member_list)
+print user_location_info_dict
 
-def playerCompare(player1, player2):
-    pass
+def playerSelectLocAgnDeptAgn(member_list, user_location_info_dict):
+    """Selects 2 non-deleted, non-bot users to play a game regardless of their user location or department channel.
+    Location agnostic, department agnostic""" 
+    player_list = []
+    user_location_info_dict = user_location_info_dict
+    member_list = member_list
+    if len(member_list) >= 2:
+        player1 = choice(member_list)
+        member_list[:] = [player for player in member_list if (player != player1)]
+        if len(member_list) >= 1:
+            player2 = choice(member_list)
+            if (player1 != player2) and (player1 and player2 in user_location_info_dict.keys()):
+                player_list.append(player1)
+                player_list.append(player2)
+                return player_list
+        else:
+            print "There are not enough people on this team to choose 2 players!"
+            return player_list
+    else:
+        print "There are not enough people on this team to choose 2 players!"
+        return player_list
 
-comparison = playerCompare(player1, player2)
+player_list = playerSelectLocAgnDeptAgn(member_list, user_location_info_dict)
+print player_list
+
+def gameAnnounce(player_list, user_location_info_dict):
+    if player_list != []:
+        player_list = player_list
+        player1 = player_list[0]
+        player2 = player_list[1]
+        for player in player_list:
+            player_input = raw_input(slack.chat.post_message('team-chips-and-crisps', "Hi there!  You've been working hard, and look like you could use a short break.  Are you ready for a game, %s" % (player), as_user=False, username='Bodie'))
 
 # Send a message to #team-chips-and-crisps channel
-# slack.chat.post_message('team-chips-and-crisps', 'Hello there!  Are you ready for a game, %s?' % (choice(slack_public_channels_users_set)), as_user=False, username='Bodie')
+# slack.chat.post_message('team-chips-and-crisps', 'Hello there!  Are you ready for a game, Xiomara?', as_user=False, username='Bodie')
 
 # Get users list
 #response = slack.users.list()
