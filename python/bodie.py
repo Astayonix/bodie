@@ -20,7 +20,7 @@ def teamChannelSet ():
     return slack_public_channels_set
 
 channel_list = list(teamChannelSet())
-print channel_list
+#print channel_list
 
 def teamMemberSet():
     """Creates a set of all public channel members on a given Slack team"""
@@ -34,7 +34,7 @@ def teamMemberSet():
     return slack_public_channels_users_set
 
 member_list = list(teamMemberSet())
-print member_list
+#print member_list
 
 def teamChannelUserDict(member_list):
     """Creates a dictionary of all users and the public channels they belong to on a given Slack team"""
@@ -54,7 +54,7 @@ def teamChannelUserDict(member_list):
     return public_channels_and_users_dict
 
 channel_user_dict = teamChannelUserDict(member_list)
-print channel_user_dict
+#print channel_user_dict
 
 def teamUserLocationDict(member_list):
     """Creates a dictionary of all non-deleted, non-bot users and their associated location information.
@@ -80,7 +80,7 @@ def teamUserLocationDict(member_list):
     return user_location_dict
 
 user_location_info_dict = teamUserLocationDict(member_list)
-print user_location_info_dict
+#print user_location_info_dict
 
 def playerSelectLocAgnDeptAgn(member_list, user_location_info_dict):
     """Selects 2 non-deleted, non-bot users to play a game regardless of their user location or department channel.
@@ -104,16 +104,25 @@ def playerSelectLocAgnDeptAgn(member_list, user_location_info_dict):
         print "There are not enough people on this team to choose 2 players!"
         return player_list
 
-player_list = playerSelectLocAgnDeptAgn(member_list, user_location_info_dict)
-print player_list
+# player_list = playerSelectLocAgnDeptAgn(member_list, user_location_info_dict)
+# print player_list
+
+player_list = ['U0YLNJNQ2','U0YKH3LF7', 'U0YMFJAF4', 'U0YKWGAN9', 'U0YHWCPQB'] #me, yvonne, jake, heidi, iona
 
 def gameAnnounce(player_list, user_location_info_dict):
     if player_list != []:
+        user_location_info_dict = user_location_info_dict
         player_list = player_list
-        player1 = player_list[0]
-        player2 = player_list[1]
         for player in player_list:
-            player_input = raw_input(slack.chat.post_message('team-chips-and-crisps', "Hi there!  You've been working hard, and look like you could use a short break.  Are you ready for a game, %s" % (player), as_user=False, username='Bodie'))
+            player_id = player
+            player_name = user_location_info_dict[player][0]
+            player_tz = user_location_info_dict[player][1]
+            player_tz_name = user_location_info_dict[player][2]
+            dm_channel_id = slack.im.open(player).body['channel']['id']
+            slack.chat.post_message(dm_channel_id, "Hi there!  You've been working hard, and look like you could use a short break.", as_user=False, username='Bodie', icon_emoji=':ghost:')
+            slack.chat.post_message(dm_channel_id, "Would you like to play a game, %s?" % (player_name), as_user=False, username='Bodie', icon_emoji=':partyparrot:')
+
+game_accept_list = gameAnnounce(player_list, user_location_info_dict)
 
 # Send a message to #team-chips-and-crisps channel
 # slack.chat.post_message('team-chips-and-crisps', 'Hello there!  Are you ready for a game, Xiomara?', as_user=False, username='Bodie')
