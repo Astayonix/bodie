@@ -7,8 +7,8 @@ from random import choice
 slack = Slacker(os.environ['SLACK_OAUTH_ACCESS_TOKEN'])
 
 # prettyprint the json returned by channels
-# pp_channel = json.dumps(channel_list, sort_keys=False, indent=4, separators=(',',':'))
-# print pp_channel
+# pp_json = json.dumps(channel_list, sort_keys=False, indent=4, separators=(',',':'))
+# print pp_json
 
 def teamChannelSet ():
     """Creates a set of all public channels on a given Slack team"""
@@ -71,6 +71,8 @@ def teamUserLocationDict(member_list):
                 if user['is_bot'] == False:
                     user_id = user['id']
                     user_real_name = user['real_name']
+                    if user_real_name == "":
+                        user_real_name = "my friend"
                     user_tz = user['tz']
                     user_tz_label = user['tz_label']
                     if member == user_id:
@@ -80,7 +82,7 @@ def teamUserLocationDict(member_list):
     return user_location_dict
 
 user_location_info_dict = teamUserLocationDict(member_list)
-#print user_location_info_dict
+# print user_location_info_dict
 
 def playerSelectLocAgnDeptAgn(member_list, user_location_info_dict):
     """Selects 2 non-deleted, non-bot users to play a game regardless of their user location or department channel.
@@ -107,7 +109,7 @@ def playerSelectLocAgnDeptAgn(member_list, user_location_info_dict):
 # player_list = playerSelectLocAgnDeptAgn(member_list, user_location_info_dict)
 # print player_list
 
-player_list = ['U0YLNJNQ2','U0YKH3LF7', 'U0YMFJAF4', 'U0YKWGAN9', 'U0YHWCPQB'] #me, yvonne, jake, heidi, iona
+player_list = ['U0YLNJNQ2']#,'U0YKH3LF7', 'U0YMFJAF4', 'U0YKWGAN9', 'U0YHWCPQB'] #me, yvonne, jake, heidi, iona
 
 def gameAnnounce(player_list, user_location_info_dict):
     if player_list != []:
@@ -119,8 +121,20 @@ def gameAnnounce(player_list, user_location_info_dict):
             player_tz = user_location_info_dict[player][1]
             player_tz_name = user_location_info_dict[player][2]
             dm_channel_id = slack.im.open(player).body['channel']['id']
-            slack.chat.post_message(dm_channel_id, "Hi there!  You've been working hard, and look like you could use a short break.", as_user=False, username='Bodie', icon_emoji=':ghost:')
-            slack.chat.post_message(dm_channel_id, "Would you like to play a game, %s?" % (player_name), as_user=False, username='Bodie', icon_emoji=':partyparrot:')
+            slack.chat.post_message(
+                dm_channel_id,
+                "Hi there! :smile:  You've been working hard and look like you could use a short break.",
+                as_user=False,
+                username='Bodie',
+                icon_emoji=':break:'
+                )
+            slack.chat.post_message(
+                dm_channel_id,
+                "Would you like to play a game, %s? :sparkles:  Type /Yes to start playing!" % (player_name),
+                as_user=False,
+                username='Bodie',
+                icon_emoji=':break:'
+                )
 
 game_accept_list = gameAnnounce(player_list, user_location_info_dict)
 
