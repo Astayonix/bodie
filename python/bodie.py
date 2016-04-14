@@ -4,7 +4,7 @@ import json
 from slacker import Slacker
 from random import choice
 
-slack = Slacker(os.environ['SLACK_OAUTH_ACCESS_TOKEN'])
+slack = Slacker(os.environ['SLACK_OAUTH_ACCESS_TOKEN_DH'])
 
 # prettyprint the json returned by channels
 # pp_json = json.dumps(channel_list, sort_keys=False, indent=4, separators=(',',':'))
@@ -126,15 +126,17 @@ def gameAnnounce(player_list, user_location_info_dict):
                 "Hi there! :smile:  You've been working hard and look like you could use a short break.",
                 as_user=False,
                 username='Bodie',
-                icon_emoji=':break:'
+                icon_emoji=':bodie:'
                 )
+            slack.rtm.start
             slack.chat.post_message(
                 dm_channel_id,
-                "Would you like to play a game, %s? :sparkles:  Type /Yes to start playing!" % (player_name),
+                "Would you like to play a game, %s? :sparkles:  Type Yes to start playing!" % (player_name),
                 as_user=False,
                 username='Bodie',
                 icon_emoji=':break:'
                 )
+
 
 game_accept_list = gameAnnounce(player_list, user_location_info_dict)
 
