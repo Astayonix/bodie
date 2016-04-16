@@ -1,46 +1,67 @@
 #import sys
 import os
 import json
-from slacker import Slacker
+import time
 from random import choice
+from slackclient import SlackClient
+from datetime import datetime
 
-slack = Slacker(os.environ['SLACK_OAUTH_ACCESS_TOKEN_DH'])
+slack = SlackClient(os.environ['SLACK_OAUTH_ACCESS_TOKEN_DH'])
 
 # prettyprint the json returned by channels
 # pp_json = json.dumps(channel_list, sort_keys=False, indent=4, separators=(',',':'))
 # print pp_json
 
+def teamDict():
+    """Creates a dictionary of Slack team information
+    {Slack Team_ID: [Slack team name, slack team domain]}"""
+
+    slack_team_dictionary = {}
+    ugly_team_json = slack.api_call('team.info')
+    teams = ugly_team_json['team']
+    team = teams['id']
+    name = teams['name']
+    domain = teams['domain']
+    slack_team_dictionary[team] = []
+    slack_team_dictionary[team].append(name)
+    slack_team_dictionary[team].append(domain)
+    return slack_team_dictionary
+
+team_dict = teamDict()
+#print team_dict
+
 def teamChannelSet ():
-    """Creates a set of all public channels on a given Slack team"""
+    """Creates a set of all public channel ids on a given Slack team"""
     slack_public_channels_set = set()
-    ugly_channel_list = slack.channels.list().body
+    ugly_channel_list = slack.api_call('channels.list')
     channels = ugly_channel_list['channels']
     for channel in channels:
-        slack_public_channels_set.add(str(unicode(channel['id'])))
+        slack_public_channels_set.add(channel['id'])
     return slack_public_channels_set
 
 channel_list = list(teamChannelSet())
 #print channel_list
 
 def teamMemberSet():
-    """Creates a set of all public channel members on a given Slack team"""
+    """Creates a set of all public channel member ids on a given Slack team"""
     slack_public_channels_users_set = set()
-    ugly_channel_list = slack.channels.list().body
+    ugly_channel_list = slack.api_call('channels.list')
     channels = ugly_channel_list['channels']
     for channel in channels:
         members_list = channel['members']
         for member in members_list:
-            slack_public_channels_users_set.add(str(unicode(member)))
+            slack_public_channels_users_set.add(member)
     return slack_public_channels_users_set
 
 member_list = list(teamMemberSet())
 #print member_list
 
 def teamChannelUserDict(member_list):
-    """Creates a dictionary of all users and the public channels they belong to on a given Slack team"""
+    """Creates a dictionary of all users and the public channels they belong to on a given Slack team
+    {Slack User_ID: [Slack Channel_ID 1, Slack Channel_ID 2, ... Slack Channel_ID n]"""
     public_channels_and_users_dict = {}
     member_list = member_list
-    ugly_channel_list = slack.channels.list().body
+    ugly_channel_list = slack.api_call('channels.list')
     channels = ugly_channel_list['channels']
     for member in member_list:
         public_channels_and_users_dict[member] = []
@@ -61,7 +82,7 @@ def teamUserLocationDict(member_list):
     {Slack User_ID: [User's Real First and Last Name, User's Time Zone, User's Time Zone Label]}"""
     user_location_dict = {}
     member_list = member_list
-    ugly_user_list = slack.users.list().body
+    ugly_user_list = slack.api_call('users.list')
     users = ugly_user_list['members']
     for member in member_list:
         user_location_dict[member] = []
@@ -81,21 +102,21 @@ def teamUserLocationDict(member_list):
                         user_location_dict[member].append(user_tz_label)
     return user_location_dict
 
-user_location_info_dict = teamUserLocationDict(member_list)
-# print user_location_info_dict
+user_location_dict = teamUserLocationDict(member_list)
+#print user_location_dict
 
-def playerSelectLocAgnDeptAgn(member_list, user_location_info_dict):
-    """Selects 2 non-deleted, non-bot users to play a game regardless of their user location or department channel.
+def playerSelectLocAgnDeptAgn(member_list, user_location_dict):
+    """Returns a list of 2 randomly chosen non-deleted, non-bot users to play a game regardless of their user location or department channel.
     Location agnostic, department agnostic""" 
     player_list = []
-    user_location_info_dict = user_location_info_dict
+    user_location_dict = user_location_dict
     member_list = member_list
     if len(member_list) >= 2:
         player1 = choice(member_list)
         member_list[:] = [player for player in member_list if (player != player1)]
         if len(member_list) >= 1:
             player2 = choice(member_list)
-            if (player1 != player2) and (player1 and player2 in user_location_info_dict.keys()):
+            if (player1 != player2) and (player1 and player2 in user_location_dict.keys()):
                 player_list.append(player1)
                 player_list.append(player2)
                 return player_list
@@ -106,13 +127,14 @@ def playerSelectLocAgnDeptAgn(member_list, user_location_info_dict):
         print "There are not enough people on this team to choose 2 players!"
         return player_list
 
-# player_list = playerSelectLocAgnDeptAgn(member_list, user_location_info_dict)
-# print player_list
+# player_list_locagn_deptagn = playerSelectLocAgnDeptAgn(member_list, user_location_dict)
+# print player_list_locagn_deptagn
 
 player_list = ['U0YLNJNQ2']#,'U0YKH3LF7', 'U0YMFJAF4', 'U0YKWGAN9', 'U0YHWCPQB'] #me, yvonne, jake, heidi, iona
 
 def gameAnnounce(player_list, user_location_info_dict):
     if player_list != []:
+        player_response_list = []
         user_location_info_dict = user_location_info_dict
         player_list = player_list
         for player in player_list:
@@ -120,25 +142,55 @@ def gameAnnounce(player_list, user_location_info_dict):
             player_name = user_location_info_dict[player][0]
             player_tz = user_location_info_dict[player][1]
             player_tz_name = user_location_info_dict[player][2]
-            dm_channel_id = slack.im.open(player).body['channel']['id']
-            slack.chat.post_message(
-                dm_channel_id,
-                "Hi there! :smile:  You've been working hard and look like you could use a short break.",
+            dm_channel_id = slack.api_call('im.open', user = player)['channel']['id']
+            slack.api_call(
+                'chat.postMessage',
+                channel = dm_channel_id,
+                text = "Hi there! :smile:  You've been working hard and look like you could use a short break.",
+                # attachments = [{:}, {:}],
+                as_user = False,
+                username = 'Bodie',
+                icon_emoji = ':bodie:'
+                )
+            slack.api_call(
+                'chat.postMessage',
+                channel = dm_channel_id,
+                text = "Would you like to play a game, %s? :sparkles:  Type 'gimmeabreak' to start playing!" % (player_name),
                 as_user=False,
                 username='Bodie',
                 icon_emoji=':bodie:'
                 )
-            slack.rtm.start
-            slack.chat.post_message(
-                dm_channel_id,
-                "Would you like to play a game, %s? :sparkles:  Type Yes to start playing!" % (player_name),
-                as_user=False,
-                username='Bodie',
-                icon_emoji=':break:'
-                )
-
-
-game_accept_list = gameAnnounce(player_list, user_location_info_dict)
+            if slack.rtm_connect():
+                while True:
+                    new_evts = slack.rtm_read()
+                    for evt in new_evts:
+                        if 'type' in evt:
+                            if evt['type'] == 'message':# and 'yes' in evt:
+                                pp_json = json.dumps(evt, sort_keys=False, indent=4, separators=(',',':'))
+                                print pp_json
+                                evt_dt_fmt = '%Y-%m-%d;%H:%M:%S'
+                                evt_text = evt['text']
+                                evt_type = evt['type']
+                                evt_user = evt['user']
+                                evt_channel = evt['channel']
+                                evt_ts = evt['ts']
+                                evt_time_stamp = datetime.strptime(evt_ts, evt_dt_fmt)
+                                print evt_channel, evt_user, evt_type, evt_text, evt_ts
+    #                             if ('gimmeabreak' in evt_text.lower()) and (evt_user == player) and (evt_channel == dm_channel_id):
+    #                                 print "yes"
+    #                                 player_response_list.append('y')
+    #                                 False
+    #                             else:
+    #                                 print "no"
+    #                                 player_response_list.append('n')
+    #                                 False
+    #                 time.sleep(1)
+    #         else:
+    #             print "Connection Failed, invalid token?"
+    # return player_response_list
+                
+game_accept_list = gameAnnounce(player_list, user_location_dict)
+print game_accept_list
 
 # Send a message to #team-chips-and-crisps channel
 # slack.chat.post_message('team-chips-and-crisps', 'Hello there!  Are you ready for a game, Xiomara?', as_user=False, username='Bodie')
