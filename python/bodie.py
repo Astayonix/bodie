@@ -127,10 +127,10 @@ def playerSelectLocAgnDeptAgn(member_list, user_location_dict):
         print "There are not enough people on this team to choose 2 players!"
         return player_list
 
-# player_list_locagn_deptagn = playerSelectLocAgnDeptAgn(member_list, user_location_dict)
-# print player_list_locagn_deptagn
+player_list_locagn_deptagn = playerSelectLocAgnDeptAgn(member_list, user_location_dict)
+print player_list_locagn_deptagn
 
-player_list = ['U0YLNJNQ2']#,'U0YKH3LF7', 'U0YMFJAF4', 'U0YKWGAN9', 'U0YHWCPQB'] #me, yvonne, jake, heidi, iona
+# player_list = ['U0YLNJNQ2']#,'U0YKH3LF7', 'U0YMFJAF4', 'U0YKWGAN9', 'U0YHWCPQB'] #me, yvonne, jake, heidi, iona
 
 def gameAnnounce(player_list, user_location_info_dict):
     if player_list != []:
@@ -164,43 +164,33 @@ def gameAnnounce(player_list, user_location_info_dict):
                 while True:
                     new_evts = slack.rtm_read()
                     for evt in new_evts:
-                        if 'type' in evt:
+                        if ('type' and 'text' in evt) and ('is_ephemeral' not in evt):
                             if evt['type'] == 'message':# and 'yes' in evt:
-                                pp_json = json.dumps(evt, sort_keys=False, indent=4, separators=(',',':'))
-                                print pp_json
-                                evt_dt_fmt = '%Y-%m-%d;%H:%M:%S'
+                                # pp_json = json.dumps(evt, sort_keys=False, indent=4, separators=(',',':'))
+                                # print pp_json
+                                # evt_dt_fmt = '%Y-%m-%d;%H:%M:%S'
                                 evt_text = evt['text']
                                 evt_type = evt['type']
                                 evt_user = evt['user']
                                 evt_channel = evt['channel']
                                 evt_ts = evt['ts']
-                                evt_time_stamp = datetime.strptime(evt_ts, evt_dt_fmt)
+                                # evt_time_stamp = datetime.strptime(evt_ts, evt_dt_fmt)
                                 print evt_channel, evt_user, evt_type, evt_text, evt_ts
-    #                             if ('gimmeabreak' in evt_text.lower()) and (evt_user == player) and (evt_channel == dm_channel_id):
-    #                                 print "yes"
-    #                                 player_response_list.append('y')
-    #                                 False
-    #                             else:
-    #                                 print "no"
-    #                                 player_response_list.append('n')
-    #                                 False
-    #                 time.sleep(1)
-    #         else:
-    #             print "Connection Failed, invalid token?"
-    # return player_response_list
+                                if ('gimmeabreak' in evt_text.lower()) and (evt_user == player) and (evt_channel == dm_channel_id):
+                                    print "yes"
+                                    player_response_list.append('y')
+                                    break
+                                else:
+                                    print "no"
+                                    player_response_list.append('n')
+                                    break
+                    time.sleep(1)
+            else:
+                print "Connection Failed, invalid token?"
+    return player_response_list
                 
-game_accept_list = gameAnnounce(player_list, user_location_dict)
+game_accept_list = gameAnnounce(player_list_locagn_deptagn, user_location_dict)
 print game_accept_list
-
-# Send a message to #team-chips-and-crisps channel
-# slack.chat.post_message('team-chips-and-crisps', 'Hello there!  Are you ready for a game, Xiomara?', as_user=False, username='Bodie')
-
-# Get users list
-#response = slack.users.list()
-# print response
-#users = response.body['members']
-# for user in users:
-#     print user
 
 # Upload a file
 #slack.files.upload('hello.txt')
